@@ -104,4 +104,4 @@ ENV/
 /example.py
 
 # idea
-/.idea/*
+.idea/*
