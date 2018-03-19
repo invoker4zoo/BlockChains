@@ -102,3 +102,6 @@ ENV/
 
 # ignore testing python file
 /example.py
+
+# idea
+/.idea/*
