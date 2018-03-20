@@ -13,6 +13,8 @@ import hashlib
 import json
 from time import time
 from uuid import uuid4
+import time
+import random
 
 import requests
 
@@ -50,14 +52,14 @@ class BlockNode(object):
 
         block = {
             'index': len(self.chain) + 1,
-            'timeStamp': time(),
-            'transactions': self.current_transactions,
+            'timeStamp': time.time(),
+            'transactions': self.transaction,
             'proof': proof,
             'previousHash': self.hash(self.chain[-1]) if len(self.chain) else '1',
         }
 
         # Reset the current list of transactions
-        self.transactions = []
+        self.transaction = []
 
         self.chain.append(block)
         return block
@@ -84,7 +86,11 @@ class BlockNode(object):
 
         :return: 返回最后一个区块
         """
-        return self.chain[-1]
+        if len(self.chain):
+            return self.chain[-1]
+        else:
+            self.new_block('100')
+            return self.chain[-1]
 
     def proof_of_work(self, last_block):
         """
@@ -114,7 +120,8 @@ class BlockNode(object):
         :return: proof的有效性 bool
         """
 
-        guess = '{previous_proof}{proof}{last_hash}'.format(previous_proof=previous_proof, proof=proof, previous_hash=previous_hash)
+        # guess = '{previous_proof}{proof}{previous_hash}'.format(previous_proof=previous_proof, proof=proof, previous_hash=previous_hash)
+        guess = str(previous_proof) + str(proof) + str(previous_hash)
         guess_hash = hashlib.sha256(guess).hexdigest()
         return guess_hash.startswith('0000')
 
@@ -123,15 +130,17 @@ class BlockNode(object):
         模拟区块从网络中收集近期的交易列表,并加上打包权益
         :param address: 网络模拟的server/transaction 地址
         :param block_gain: 区块交易打包的收益
-        :return: current_transaction: 打包在区块中的交易列表
+        # :return: current_transaction: 打包在区块中的交易列表
         """
-        res = requests.get(self.network + '/transactions')
-        net_transaction_list = res['transactionList']
-        return net_transaction_list.append({
+        # res = requests.get(self.network + '/transactions')
+        # net_transaction_list = res['transactionList']
+        net_transaction_list = []
+        net_transaction_list.append({
                 'sender': "0",
                 'recipient': self.id,
                 'amount': block_gain,
             })
+        self.transaction = net_transaction_list
 
     def get_neighbours(self):
         res = requests.get(self.network + '/nodes')
@@ -185,8 +194,18 @@ class BlockNode(object):
 
         return False
 
-    def mine_one_block(self):
+    def mine_once(self):
         """
-        
+        挖掘一个区块
         :return:
         """
+        try:
+            last_block = self.last_block()
+            proof = self.proof_of_work(last_block)
+            # collect transactions
+            self.get_transaction_list()
+            block = self.new_block(proof)
+            # time.sleep(int(random.random()*10))
+            return block
+        except:
+            return None
