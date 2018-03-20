@@ -184,3 +184,9 @@ class BlockNode(object):
             return True
 
         return False
+
+    def mine_one_block(self):
+        """
+        
+        :return:
+        """
