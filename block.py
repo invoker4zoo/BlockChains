@@ -15,6 +15,7 @@ from time import time
 from uuid import uuid4
 import time
 import random
+import json
 
 import requests
 
@@ -35,7 +36,9 @@ class BlockNode(object):
         # 生成一个node的id
         self.id = str(uuid4()).replace('-', '')
         # 模拟网络的地址
-        self.network = ''
+        self.network = 'http://0.0.0.0:5050'
+        # 相邻node
+        self.neighbours = []
 
     def new_block(self, proof):
         """
@@ -49,7 +52,6 @@ class BlockNode(object):
             previousHash: 前一个区块的hash值
         }
         """
-
         block = {
             'index': len(self.chain) + 1,
             'timeStamp': time.time(),
@@ -89,7 +91,8 @@ class BlockNode(object):
         if len(self.chain):
             return self.chain[-1]
         else:
-            self.new_block('100')
+            self.get_transaction_list()
+            self.new_block(100)
             return self.chain[-1]
 
     def proof_of_work(self, last_block):
@@ -128,23 +131,27 @@ class BlockNode(object):
     def get_transaction_list(self, block_gain = 1):
         """
         模拟区块从网络中收集近期的交易列表,并加上打包权益
-        :param address: 网络模拟的server/transaction 地址
-        :param block_gain: 区块交易打包的收益
         # :return: current_transaction: 打包在区块中的交易列表
         """
-        # res = requests.get(self.network + '/transactions')
-        # net_transaction_list = res['transactionList']
-        net_transaction_list = []
-        net_transaction_list.append({
+        self.transaction.append({
                 'sender': "0",
                 'recipient': self.id,
                 'amount': block_gain,
             })
-        self.transaction = net_transaction_list
 
-    def get_neighbours(self):
-        res = requests.get(self.network + '/nodes')
-        return res['nodes']
+
+    # def get_neighbours(self):
+    #     res = requests.get(self.network + '/nodes')
+    #     data = json.loads(res.content)
+    #     return data.get('nodes', [])
+    def add_neighbour(self, neighbour):
+        """
+        添加邻居
+        :return:
+        """
+        if neighbour not in self.neighbours and neighbour:
+            self.neighbours.append(neighbour)
+
 
     def varify_chain_validate(self, chain):
         """
@@ -158,10 +165,10 @@ class BlockNode(object):
         while current_index < len(chain):
             block = chain[current_index]
             # Check that the hash of the block is correct
-            if block['previous_hash'] != self.hash(last_block):
+            if block['previousHash'] != self.hash(last_block):
                 return False
             # Check that the Proof of Work is correct
-            if not self.valid_proof(last_block['proof'], block['proof'], last_block['previous_hash']):
+            if not self.valid_proof(last_block['proof'], block['proof'], block['previousHash']):
                 return False
             last_block = block
             current_index += 1
@@ -169,22 +176,21 @@ class BlockNode(object):
 
     def resolve_conflicts(self):
         """
-        This is our consensus algorithm, it resolves conflicts
-        by replacing our chain with the longest one in the network.
-        :return: True if our chain was replaced, False if not
+        解决区块链冲突
         """
-        neighbours = self.get_neighbours()
+        neighbours = self.neighbours
         new_chain = None
         # We're only looking for chains longer than ours
         max_length = len(self.chain)
         # Grab and verify the chains from all the nodes in our network
         for node in neighbours:
-            response = requests.get('http://{node}/chain'.format(node=node))
+            print node
+            response = requests.get('{node}/chain'.format(node=node))
             if response.status_code == 200:
                 length = response.json()['length']
                 chain = response.json()['chain']
                 # Check if the length is longer and the chain is valid
-                if length > max_length and self.valid_chain(chain):
+                if length > max_length and self.varify_chain_validate(chain):
                     max_length = length
                     new_chain = chain
         # Replace our chain if we discovered a new, valid chain longer than ours
@@ -209,3 +215,19 @@ class BlockNode(object):
             return block
         except:
             return None
+
+    def new_transaction(self, transaction):
+        """
+        Creates a new transaction to go into the next mined Block
+        :param sender: Address of the Sender
+        :param recipient: Address of the Recipient
+        :param amount: Amount
+        :return: The index of the Block that will hold this transaction
+        """
+        self.transaction.append({
+            'sender': transaction['sender'],
+            'recipient': transaction['recipient'],
+            'amount': transaction['amount'],
+        })
+
+        return self.last_block()['index'] + 1
