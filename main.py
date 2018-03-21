@@ -25,6 +25,7 @@ def simulation(num =3):
     启动一个最小的模拟分布式系统
     :return:
     """
+    node_list = []
     # strat main line
     os.system('nohup python network.py >/dev/null 2>&1 & ')
 
@@ -32,6 +33,7 @@ def simulation(num =3):
     for i in range(0, num):
         node_list.append('http://0.0.0.0:%d' % (STRAT_PORT + i))
         os.system('nohup python node.py -p %d >/dev/null 2>&1 &' % (STRAT_PORT + i))
+        time.sleep(1)
 
     # registe address
     for i in range(0, num):
@@ -65,18 +67,59 @@ def add_node(port=None):
     :return:
     """
     if port:
-        
-
+        pass
+    else:
+        res = requests.get(MAIN_ADDRESS + '/nodes')
+        data = json.loads(res.content)
+        length = data.get('length', 3)
+        address_list = data.get('nodes', [])
+        port = STRAT_PORT + length
+    # start new node service
+    os.system('nohup python node.py -p %d >/dev/null 2>&1 &' % port)
+    time.sleep(1)
+    # register node
+    new_address = 'http://0.0.0.0:%d'%port
+    new_id = requests.get(new_address+ '/id').content
+    post_data = {
+        'address': new_address,
+        'id': new_id
+    }
+    requests.post(MAIN_ADDRESS + '/register', data=post_data)
+    # get neighbours
+    requests.post(new_address + '/nodes/register', data={'nodes': json.dumps(address_list)})
+    # update chain
+    while 1:
+        random_freq = int(random.random() * 10 + 5)
+        for count in range(0, 20):
+            time.sleep(1)
+            if not count % random_freq:
+                requests.get(new_address + '/mine')
+            if not count % 1:
+                requests.get(MAIN_ADDRESS + '/transactions/random')
+        requests.get(MAIN_ADDRESS + '/freshChain')
 
 if __name__ == '__main__':
 
-    node_list = []
+
     from argparse import ArgumentParser
 
     parser = ArgumentParser()
     parser.add_argument('-n', '--num', default=3, type=int, help='number of the nodes')
-    parser.add_argument('-t', '--type', default='simulation', type=str, help='simulation type')
+    parser.add_argument('-t', '--type', default='simulation', type=str, help='system type')
+    parser.add_argument('-p', '--port', default=0, type=int, help='addition node port')
     args = parser.parse_args()
     num = args.num
     simulation_type = args.type
+    port = args.port
+
+    if simulation_type=='simulation':
+        simulation(num=num)
+
+    if simulation_type=='add':
+        if not port:
+            add_node()
+        else:
+            add_node(port=port)
+    if simulation_type=='kill':
+        os.system('pkill -f python')
 

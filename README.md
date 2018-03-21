@@ -1,2 +1,13 @@
-# BlockChains
-sample block chains example for study
+# 最小化的区块链系统
+
+> 通过实现一遍区块链的最小系统来学习和了解区块链的运作方式。在该项目中对区块链的多各节点的实现中进行了部分简化，使用一个network服务来模拟网络环境中的路由和广播。
+
+## 运行环境
+python 2.7 Flask uuid hashlib
+
+
+## 区块的构造
+ - 区块的信息格式
+ - 构造哈希链
+ - 最大工作量算法的实现（PoW）
+ -
