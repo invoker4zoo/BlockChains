@@ -16,27 +16,22 @@ import random
 import copy
 import json
 
+# global parameters
+STRAT_PORT = 5000
+MAIN_ADDRESS = 'http://0.0.0.0:5050'
 
-if __name__ == '__main__':
-    STRAT_PORT = 5000
-    MAIN_ADDRESS = 'http://0.0.0.0:5050'
-    node_list = []
-    from argparse import ArgumentParser
-
-    parser = ArgumentParser()
-    parser.add_argument('-n', '--num', default=3, type=int, help='number of the nodes')
-    parser.add_argument('-t', '--type', default='mining simulation', type=str, help='simulation type')
-    args = parser.parse_args()
-    num = args.num
-    simulation_type = args.type
-
+def simulation(num =3):
+    """
+    启动一个最小的模拟分布式系统
+    :return:
+    """
     # strat main line
-    os.system('nohup python mainLine.py >/dev/null 2>&1 & ')
+    os.system('nohup python network.py >/dev/null 2>&1 & ')
 
     # start node services
     for i in range(0, num):
-        node_list.append('http://0.0.0.0:%d'%(STRAT_PORT + i))
-        os.system('nohup python node.py -p %d >/dev/null 2>&1 &'%(STRAT_PORT + i))
+        node_list.append('http://0.0.0.0:%d' % (STRAT_PORT + i))
+        os.system('nohup python node.py -p %d >/dev/null 2>&1 &' % (STRAT_PORT + i))
 
     # registe address
     for i in range(0, num):
@@ -48,12 +43,12 @@ if __name__ == '__main__':
         requests.post(MAIN_ADDRESS + '/register', data=post_data)
         _node_list = copy.deepcopy(node_list)
         _node_list.pop(i)
-        requests.post(node_list[i] + '/nodes/register', data={'nodes':json.dumps(_node_list)})
+        requests.post(node_list[i] + '/nodes/register', data={'nodes': json.dumps(_node_list)})
 
     while 1:
         # 每20秒一次区块链更新
         # 随机区块挖掘速度，控制区块产生速度
-        miner_random_list = [int(random.random()*10 + 5) for i in range(1, num)]
+        miner_random_list = [int(random.random() * 10 + 5) for i in range(1, num)]
         for count in range(0, 20):
             time.sleep(1)
             for index, random_time in enumerate(miner_random_list):
@@ -62,3 +57,26 @@ if __name__ == '__main__':
             if not count % 1:
                 requests.get(MAIN_ADDRESS + '/transactions/random')
         requests.get(MAIN_ADDRESS + '/freshChain')
+
+
+def add_node(port=None):
+    """
+    将一个新的node加入到网络之中
+    :return:
+    """
+    if port:
+        
+
+
+if __name__ == '__main__':
+
+    node_list = []
+    from argparse import ArgumentParser
+
+    parser = ArgumentParser()
+    parser.add_argument('-n', '--num', default=3, type=int, help='number of the nodes')
+    parser.add_argument('-t', '--type', default='simulation', type=str, help='simulation type')
+    args = parser.parse_args()
+    num = args.num
+    simulation_type = args.type
+

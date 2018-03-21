@@ -24,7 +24,10 @@ blockchain = BlockNode()
 
 @app.route('/id', methods=['GET'])
 def get_id():
-    return blockchain.id
+    if blockchain.id:
+        return blockchain.id, 200
+    else:
+        return 'get invalid id', 500
 
 
 @app.route('/mine', methods=['GET'])
@@ -51,7 +54,10 @@ def full_chain():
 
 @app.route('/chain/resolve', methods=['GET'])
 def consensus():
-    blockchain.resolve_conflicts()
+    if blockchain.resolve_conflicts():
+        return 'solve conflicts, change chain', 200
+    else:
+        return 'solve conflicts, save self chain', 200
 
 
 @app.route('/transactions/new', methods=['POST'])
@@ -63,22 +69,19 @@ def new_transaction():
     index = blockchain.new_transaction(transaction)
 
     response = {'message': 'Transaction will be added to Block {index}'.format(index=index)}
-    return jsonify(response), 201
+    return jsonify(response), 200
 
 
 @app.route('/nodes/register', methods=['POST'])
 def register_nodes():
-    nodes = json.loads(request.form.get('nodes', None))
-    for node in nodes:
-        blockchain.add_neighbour(node)
+    try:
+        nodes = json.loads(request.form.get('nodes', None))
+        for node in nodes:
+            blockchain.add_neighbour(node)
+        return 'register nodes success', 200
+    except Exception, e:
+        return 'register nodes failed for %s'%str(e), 500
 
-
-
-
-# @app.route('/register', methods=['GET'])
-# def register():
-#     pass
-#     # res = requests.post(network, data={'address'})
 
 if __name__ == '__main__':
     from argparse import ArgumentParser
