@@ -16,8 +16,8 @@ from uuid import uuid4
 import time
 import random
 import json
-
 import requests
+
 
 class BlockNode(object):
     """
@@ -78,14 +78,14 @@ class BlockNode(object):
 
     def last_index(self):
         """
-
+        取到链上的最后一个区块的index值
         :return: 区块链中最后一个区块的index
         """
         return self.chain[-1]['index']
 
     def last_block(self):
         """
-
+        取到连上的最后一个区块
         :return: 返回最后一个区块
         """
         if len(self.chain):
@@ -139,11 +139,6 @@ class BlockNode(object):
                 'amount': block_gain,
             })
 
-
-    # def get_neighbours(self):
-    #     res = requests.get(self.network + '/nodes')
-    #     data = json.loads(res.content)
-    #     return data.get('nodes', [])
     def add_neighbour(self, neighbour):
         """
         添加邻居
@@ -151,7 +146,6 @@ class BlockNode(object):
         """
         if neighbour not in self.neighbours and neighbour:
             self.neighbours.append(neighbour)
-
 
     def varify_chain_validate(self, chain):
         """
@@ -231,3 +225,20 @@ class BlockNode(object):
         })
 
         return self.last_block()['index'] + 1
+
+    def count(self):
+        """
+        通过区块链信息计算所有用户的余额
+        :return:
+        """
+        node_count_info = {}
+        for item in self.chain:
+            transaction_list = item.get('transactions',[])
+            for transaction in transaction_list:
+                if transaction['sender'] not in node_count_info.keys():
+                    node_count_info[transaction['sender']] = 0
+                if transaction['recipient'] not in node_count_info.keys():
+                    node_count_info[transaction['recipient']] = 0
+                node_count_info[transaction['sender']] -= transaction['amount']
+                node_count_info[transaction['recipient']] += transaction['amount']
+        return node_count_info

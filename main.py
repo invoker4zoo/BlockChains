@@ -50,14 +50,15 @@ def simulation(num =3):
     while 1:
         # 每20秒一次区块链更新
         # 随机区块挖掘速度，控制区块产生速度
-        miner_random_list = [int(random.random() * 10 + 5) for i in range(1, num)]
-        for count in range(0, 20):
-            time.sleep(1)
-            for index, random_time in enumerate(miner_random_list):
-                if not count % random_time:
-                    requests.get(node_list[index] + '/mine')
-            if not count % 1:
+        res = requests.get(MAIN_ADDRESS + '/nodes').content
+        # node_num = json.loads(res)['length']
+        node_list = json.loads(res)['nodes']
+        simple = random.choice(node_list)
+        for count in range(0, 10):
+            time.sleep(0.1)
+            if not count % 2:
                 requests.get(MAIN_ADDRESS + '/transactions/random')
+        requests.get(simple + '/mine')
         requests.get(MAIN_ADDRESS + '/freshChain')
 
 
@@ -87,16 +88,9 @@ def add_node(port=None):
     requests.post(MAIN_ADDRESS + '/register', data=post_data)
     # get neighbours
     requests.post(new_address + '/nodes/register', data={'nodes': json.dumps(address_list)})
-    # update chain
-    while 1:
-        random_freq = int(random.random() * 10 + 5)
-        for count in range(0, 20):
-            time.sleep(1)
-            if not count % random_freq:
-                requests.get(new_address + '/mine')
-            if not count % 1:
-                requests.get(MAIN_ADDRESS + '/transactions/random')
-        requests.get(MAIN_ADDRESS + '/freshChain')
+    #
+    requests.get(new_address + '/chain/resolve')
+
 
 if __name__ == '__main__':
 

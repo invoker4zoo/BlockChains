@@ -83,6 +83,15 @@ def register_nodes():
         return 'register nodes failed for %s'%str(e), 500
 
 
+@app.route('/count', methods=['GET'])
+def count():
+    try:
+        count_info = blockchain.count()
+        return jsonify(count_info), 200
+    except:
+        'get count info failed', 500
+
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
 
